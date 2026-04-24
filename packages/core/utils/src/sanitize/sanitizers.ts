@@ -17,6 +17,7 @@ import {
   removeDynamicZones,
   removeMorphToRelations,
   expandWildcardPopulate,
+  sanitizeBlocks,
 } from './visitors';
 import { isOperator } from '../operators';
 
@@ -48,6 +49,10 @@ const defaultSanitizeOutput = async (ctx: Context, entity: Data) => {
     (...args) => {
       removePassword(...args);
       removePrivate(...args);
+      // Strip private / password attributes from component / dynamic-zone / relation
+      // refs embedded inside blocks JSON payloads. Does nothing when the attribute
+      // is not of type `blocks`, so it's cheap on other attributes.
+      sanitizeBlocks(...args);
     },
     ctx,
     entity

@@ -496,4 +496,186 @@ describe('Blocks validator', () => {
       expect(validator(mixed)).rejects.toThrow(errors.YupValidationError);
     });
   });
+
+  describe('Media (unified)', () => {
+    const validMedia = [
+      {
+        type: 'media',
+        kind: 'image',
+        children: [{ type: 'text', text: '' }],
+        media: {
+          name: 'photo.png',
+          alternativeText: null,
+          url: '/uploads/photo.png',
+          caption: null,
+          width: 800,
+          height: 600,
+          formats: null,
+          hash: 'photo_hash',
+          ext: '.png',
+          mime: 'image/png',
+          size: 12,
+          previewUrl: null,
+          provider: 'local',
+          provider_metadata: null,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      },
+    ];
+
+    it('Accepts a valid media node with kind: image', async () => {
+      const validator = strapiUtils.validateYupSchema(
+        (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+      );
+      expect(await validator(validMedia)).toEqual(validMedia);
+    });
+
+    it('Accepts a video media node (no width/height required)', async () => {
+      const videoMedia = [
+        {
+          ...validMedia[0],
+          kind: 'video',
+          media: { ...validMedia[0].media, width: null, height: null },
+        },
+      ];
+      const validator = strapiUtils.validateYupSchema(
+        (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+      );
+      expect(await validator(videoMedia)).toEqual(videoMedia);
+    });
+
+    it('Rejects media with an unknown kind', async () => {
+      const badMedia = [{ ...validMedia[0], kind: 'hologram' }];
+      const validator = strapiUtils.validateYupSchema(
+        (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+      );
+      expect(validator(badMedia)).rejects.toThrow(errors.YupValidationError);
+    });
+  });
+
+  describe('Component ref', () => {
+    it('Accepts a component node with a known componentUid', async () => {
+      (globalThis as any).strapi = { components: { 'shared.hero': {} } };
+      try {
+        const nodes = [
+          {
+            type: 'component',
+            componentUid: 'shared.hero',
+            data: { title: 'hi' },
+            children: [{ type: 'text', text: '' }],
+          },
+        ];
+        const validator = strapiUtils.validateYupSchema(
+          (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+        );
+        expect(await validator(nodes)).toEqual(nodes);
+      } finally {
+        delete (globalThis as any).strapi;
+      }
+    });
+
+    it('Rejects a component node when the componentUid is unknown', async () => {
+      (globalThis as any).strapi = { components: { 'shared.hero': {} } };
+      try {
+        const nodes = [
+          {
+            type: 'component',
+            componentUid: 'shared.missing',
+            data: {},
+            children: [{ type: 'text', text: '' }],
+          },
+        ];
+        const validator = strapiUtils.validateYupSchema(
+          (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+        );
+        expect(validator(nodes)).rejects.toThrow(errors.YupValidationError);
+      } finally {
+        delete (globalThis as any).strapi;
+      }
+    });
+  });
+
+  describe('Dynamic zone', () => {
+    it('Accepts a dynamic-zone node whose items reference known components', async () => {
+      (globalThis as any).strapi = {
+        components: { 'shared.hero': {}, 'shared.cta': {} },
+      };
+      try {
+        const nodes = [
+          {
+            type: 'dynamic-zone',
+            items: [
+              { componentUid: 'shared.hero', data: {} },
+              { componentUid: 'shared.cta', data: { label: 'click' } },
+            ],
+            children: [{ type: 'text', text: '' }],
+          },
+        ];
+        const validator = strapiUtils.validateYupSchema(
+          (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+        );
+        expect(await validator(nodes)).toEqual(nodes);
+      } finally {
+        delete (globalThis as any).strapi;
+      }
+    });
+  });
+
+  describe('Relation ref', () => {
+    it('Accepts a relation node with a known target and a non-empty documentId', async () => {
+      (globalThis as any).strapi = { contentTypes: { 'api::article.article': {} } };
+      try {
+        const nodes = [
+          {
+            type: 'relation',
+            target: 'api::article.article',
+            documentId: 'abc123',
+            children: [{ type: 'text', text: '' }],
+          },
+        ];
+        const validator = strapiUtils.validateYupSchema(
+          (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+        );
+        expect(await validator(nodes)).toEqual(nodes);
+      } finally {
+        delete (globalThis as any).strapi;
+      }
+    });
+
+    it('Rejects a relation with an unknown target', async () => {
+      (globalThis as any).strapi = { contentTypes: { 'api::article.article': {} } };
+      try {
+        const nodes = [
+          {
+            type: 'relation',
+            target: 'api::ghost.ghost',
+            documentId: 'abc',
+            children: [{ type: 'text', text: '' }],
+          },
+        ];
+        const validator = strapiUtils.validateYupSchema(
+          (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+        );
+        expect(validator(nodes)).rejects.toThrow(errors.YupValidationError);
+      } finally {
+        delete (globalThis as any).strapi;
+      }
+    });
+
+    it('Rejects a relation with an empty documentId', async () => {
+      const nodes = [
+        {
+          type: 'relation',
+          target: 'api::article.article',
+          documentId: '',
+          children: [{ type: 'text', text: '' }],
+        },
+      ];
+      const validator = strapiUtils.validateYupSchema(
+        (Validators.blocks as any)({ attr: { type: 'blocks' } }, { isDraft: false })
+      );
+      expect(validator(nodes)).rejects.toThrow(errors.YupValidationError);
+    });
+  });
 });

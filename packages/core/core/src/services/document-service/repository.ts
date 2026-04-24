@@ -28,6 +28,11 @@ import * as selfReferentialRelations from './utils/self-referential-relations';
 import entityValidator from '../entity-validator';
 import { addFirstPublishedAtToDraft, filterDataFirstPublishedAt } from './first-published-at';
 import { runParallelWithOrderedErrors } from './utils/ordered-parallel';
+import {
+  populateEntryBlocks,
+  validateBlocksRefsForPublish,
+  findBlocksAttributeNames,
+} from './blocks/populate';
 
 const { validators } = validate;
 
@@ -316,6 +321,29 @@ export const createContentTypeRepository: RepositoryFactoryMethod = (
   const eventManager = createEventManager(strapi, uid);
   const emitEvent = curry(eventManager.emitEvent);
 
+  /**
+   * Resolve blocks refs on a raw entry (or list of entries) once it's back
+   * from the DB. Skipped when the schema has no blocks attributes so the cost
+   * is zero for types that don't use the feature.
+   */
+  const withBlocksPopulated = async <T extends Record<string, unknown>>(
+    result: T | T[] | null | undefined,
+    effectiveStatus: 'draft' | 'published'
+  ): Promise<T | T[] | null | undefined> => {
+    if (!result) return result;
+    if (findBlocksAttributeNames(contentType).length === 0) return result;
+    const ctx = { status: effectiveStatus, locale: undefined };
+    if (Array.isArray(result)) {
+      return Promise.all(
+        result.map((row) => populateEntryBlocks(row, contentType, ctx) as Promise<T>)
+      );
+    }
+    return populateEntryBlocks(result, contentType, ctx);
+  };
+
+  const resolveStatusFromParams = (params: any): 'draft' | 'published' =>
+    params?.status === 'published' ? 'published' : 'draft';
+
   async function findMany(params = {} as any) {
     const query = await async.pipe(
       validateParams,
@@ -328,7 +356,8 @@ export const createContentTypeRepository: RepositoryFactoryMethod = (
       transformParamsToQuery(uid)
     )(params || {});
 
-    return strapi.db.query(uid).findMany(query);
+    const rows = await strapi.db.query(uid).findMany(query);
+    return withBlocksPopulated(rows, resolveStatusFromParams(params));
   }
 
   async function findFirst(params = {} as any) {
@@ -343,7 +372,8 @@ export const createContentTypeRepository: RepositoryFactoryMethod = (
       transformParamsToQuery(uid)
     )(params);
 
-    return strapi.db.query(uid).findOne(query);
+    const row = await strapi.db.query(uid).findOne(query);
+    return withBlocksPopulated(row, resolveStatusFromParams(params));
   }
 
   // TODO: do we really want to add filters on the findOne now that we have findFirst ?
@@ -362,7 +392,8 @@ export const createContentTypeRepository: RepositoryFactoryMethod = (
       (query) => assoc('where', { ...query.where, documentId }, query)
     )(params);
 
-    return strapi.db.query(uid).findOne(query);
+    const row = await strapi.db.query(uid).findOne(query);
+    return withBlocksPopulated(row, resolveStatusFromParams(params));
   }
 
   async function deleteDocument(opts = {} as any) {
@@ -566,6 +597,15 @@ export const createContentTypeRepository: RepositoryFactoryMethod = (
         select: ['id', 'locale'],
       }),
     ]);
+
+    // Validate blocks-embedded relation refs: every referenced document must
+    // have a published version at the relevant locale, or publish is aborted
+    // before any mutation runs. Configurable via `blocks.publishRefsOnPublish`.
+    for (const draft of draftsToPublish) {
+      await validateBlocksRefsForPublish(draft as Record<string, unknown>, contentType, {
+        locale: (draft as any)?.locale,
+      });
+    }
 
     // Load any unidirectional relation targetting the old published entries
     const relationsToSync = await unidirectionalRelations.load(

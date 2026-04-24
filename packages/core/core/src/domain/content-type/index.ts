@@ -53,6 +53,8 @@ const createContentType = (uid: string, definition: ContentTypeDefinition) => {
 
   addFirstPublishedAt(schema);
 
+  addBody(schema);
+
   return schema;
 };
 
@@ -100,6 +102,75 @@ const addFirstPublishedAt = (schema: Schema.ContentType) => {
       private: !isEnabled,
     };
   }
+};
+
+/**
+ * Injects a pre-existing `body` attribute of type `blocks` on every content
+ * type when the `future.body` flag is enabled. Per-type opt-out is supported
+ * via `options.body.enabled = false` in the content-type schema file. The
+ * injected attribute is non-configurable so users can't remove it via the CTB,
+ * but it doesn't participate in the reserved-name list unless the feature is on.
+ */
+const addBody = (schema: Schema.ContentType) => {
+  // Read the flag directly from config (same pattern as `hasFirstPublishedAtField`)
+  // — the `strapi.features` service may or may not be eagerly available during
+  // the register phase when content types are instantiated.
+  const strapiInstance = (globalThis as any).strapi;
+  const flagEnabled = strapiInstance?.config?.get?.('features.future.body', false) === true;
+  if (!flagEnabled) return;
+
+  // Only inject on user-authored content types. `admin::*` (permissions, users,
+  // roles, tokens, sessions) and `strapi::*` internals have no editorial
+  // surface and must not grow a body column. Plugin-provided types (like
+  // `plugin::users-permissions.user`) are also excluded unless the plugin
+  // author explicitly opts in via `options.body.enabled = true`.
+  const uid = schema.uid as string | undefined;
+  const isAdminOrStrapiInternal =
+    typeof uid === 'string' && (uid.startsWith('admin::') || uid.startsWith('strapi::'));
+  const isPlugin = typeof uid === 'string' && uid.startsWith('plugin::');
+
+  const bodyOptions = (
+    schema.options as
+      | {
+          body?: {
+            enabled?: boolean;
+            allowComponents?: boolean;
+            allowDynamicZones?: boolean;
+            allowRelations?: boolean;
+          };
+        }
+      | undefined
+  )?.body;
+  if (bodyOptions?.enabled === false) return;
+
+  if (isAdminOrStrapiInternal) return;
+  // Plugins opt in explicitly; default behaviour is skip.
+  if (isPlugin && bodyOptions?.enabled !== true) return;
+
+  // The sub-schema (`allowComponents`, `allowDynamicZones`, `allowRelations`) is
+  // mirrored into pluginOptions so the admin slash menu and the runtime validators
+  // can read it without re-parsing the content-type options.
+  const pluginBodyOptions = {
+    allowComponents: bodyOptions?.allowComponents ?? true,
+    allowDynamicZones: bodyOptions?.allowDynamicZones ?? true,
+    allowRelations: bodyOptions?.allowRelations ?? true,
+  };
+
+  strapiInstance?.log?.info?.(
+    `[future.body] injecting 'body' blocks attribute into ${schema.info?.singularName ?? 'content-type'}`
+  );
+
+  schema.attributes.body = {
+    type: 'blocks',
+    configurable: false,
+    writable: true,
+    visible: true,
+    required: false,
+    pluginOptions: {
+      i18n: { localized: true },
+      body: pluginBodyOptions,
+    },
+  } as Schema.Attribute.Blocks;
 };
 
 const addCreatorFields = (schema: Schema.ContentType) => {

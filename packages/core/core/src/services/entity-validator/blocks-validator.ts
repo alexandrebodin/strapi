@@ -119,26 +119,91 @@ const listNodeValidator = yup.object().shape({
     .required(),
 });
 
+const mediaFileShape = yup.object().shape({
+  name: yup.string().required(),
+  alternativeText: yup.string().nullable(),
+  url: yup.string().required(),
+  caption: yup.string().nullable(),
+  width: yup.number().nullable(),
+  height: yup.number().nullable(),
+  formats: yup.object().nullable(),
+  hash: yup.string().required(),
+  ext: yup.string().required(),
+  mime: yup.string().required(),
+  size: yup.number().required(),
+  previewUrl: yup.string().nullable(),
+  provider: yup.string().required(),
+  provider_metadata: yup.mixed().nullable(),
+  createdAt: yup.string().required(),
+  updatedAt: yup.string().required(),
+});
+
 const imageNodeValidator = yup.object().shape({
   type: yup.string().equals(['image']).required(),
-  image: yup.object().shape({
-    name: yup.string().required(),
-    alternativeText: yup.string().nullable(),
-    url: yup.string().required(),
-    caption: yup.string().nullable(),
+  image: mediaFileShape.shape({
     width: yup.number().required(),
     height: yup.number().required(),
-    formats: yup.object().nullable(),
-    hash: yup.string().required(),
-    ext: yup.string().required(),
-    mime: yup.string().required(),
-    size: yup.number().required(),
-    previewUrl: yup.string().nullable(),
-    provider: yup.string().required(),
-    provider_metadata: yup.mixed().nullable(),
-    createdAt: yup.string().required(),
-    updatedAt: yup.string().required(),
   }),
+  children: yup.array().of(inlineNodeValidator).required(),
+});
+
+const mediaNodeValidator = yup.object().shape({
+  type: yup.string().equals(['media']).required(),
+  kind: yup.string().oneOf(['image', 'video', 'audio', 'file']).required(),
+  media: mediaFileShape,
+  children: yup.array().of(inlineNodeValidator).required(),
+});
+
+/**
+ * Validate that a componentUid references a known component.
+ * The component's own attribute-level validation is deferred to the full
+ * entity-validator pass once the parent entry is being persisted; here we only
+ * ensure the reference is structurally sound and the component is known.
+ */
+const componentRefShape = yup.object().shape({
+  componentUid: yup
+    .string()
+    .required()
+    .test('component-exists', 'Referenced component does not exist', (value) => {
+      if (!value) return false;
+      const components = (globalThis as any).strapi?.components;
+      return !components || Object.prototype.hasOwnProperty.call(components, value);
+    }),
+  data: yup.object().required(),
+});
+
+const componentNodeValidator = yup.object().shape({
+  type: yup.string().equals(['component']).required(),
+  componentUid: componentRefShape.fields.componentUid,
+  data: yup.object().required(),
+  children: yup.array().of(inlineNodeValidator).required(),
+});
+
+const dynamicZoneNodeValidator = yup.object().shape({
+  type: yup.string().equals(['dynamic-zone']).required(),
+  items: yup.array().of(componentRefShape).required(),
+  children: yup.array().of(inlineNodeValidator).required(),
+});
+
+/**
+ * Validates a relation-ref node's shape only. Target-document existence and
+ * publish-readiness are verified by the document-service publish pipeline,
+ * which can distinguish draft vs published lookups and aggregate errors across
+ * the full body.
+ */
+const relationNodeValidator = yup.object().shape({
+  type: yup.string().equals(['relation']).required(),
+  target: yup
+    .string()
+    .required()
+    .test('target-exists', 'Referenced content type does not exist', (value) => {
+      if (!value) return false;
+      const contentTypes = (globalThis as any).strapi?.contentTypes;
+      return !contentTypes || Object.prototype.hasOwnProperty.call(contentTypes, value);
+    }),
+  documentId: yup.string().required().min(1),
+  locale: yup.string().nullable(),
+  display: yup.string().oneOf(['inline', 'card']).nullable(),
   children: yup.array().of(inlineNodeValidator).required(),
 });
 
@@ -155,8 +220,16 @@ const blockNodeValidator: any = yup.lazy((value: { type: string }) => {
       return listNodeValidator;
     case 'image':
       return imageNodeValidator;
+    case 'media':
+      return mediaNodeValidator;
     case 'code':
       return codeBlockValidator;
+    case 'component':
+      return componentNodeValidator;
+    case 'dynamic-zone':
+      return dynamicZoneNodeValidator;
+    case 'relation':
+      return relationNodeValidator;
     default:
       return yup.mixed().test('invalid-type', 'Block node is of invalid type', () => {
         return false;
