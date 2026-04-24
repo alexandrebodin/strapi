@@ -8,12 +8,16 @@ import { Slate, withReact } from 'slate-react';
 import { type BlocksStore, BlocksEditorProvider } from '../../BlocksEditor';
 import { modifiers } from '../../Modifiers';
 import { codeBlocks } from '../Code';
+import { componentBlocks } from '../Component';
+import { dynamicZoneBlocks } from '../DynamicZone';
 import { headingBlocks } from '../Heading';
 import { imageBlocks } from '../Image';
 import { linkBlocks } from '../Link';
 import { listBlocks } from '../List';
+import { mediaBlocks } from '../Media';
 import { paragraphBlocks } from '../Paragraph';
 import { quoteBlocks } from '../Quote';
+import { relationBlocks } from '../Relation';
 
 const defaultBaseEditor = createEditor();
 
@@ -31,6 +35,10 @@ const Wrapper = ({ children, baseEditor = defaultBaseEditor }: WrapperProps) => 
     ...listBlocks,
     ...linkBlocks,
     ...imageBlocks,
+    ...mediaBlocks,
+    ...componentBlocks,
+    ...dynamicZoneBlocks,
+    ...relationBlocks,
     ...quoteBlocks,
     ...codeBlocks,
   };

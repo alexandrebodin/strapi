@@ -292,7 +292,6 @@ const BlocksDropdown = () => {
           // Issue: https://github.com/ianstormtaylor/slate/issues/2500
 
           Transforms.setNodes(editor, { type: 'paragraph' });
-          // @ts-expect-error convert explicitly type to paragraph
           selectedNode = { ...anchorNode, type: 'paragraph' };
         } else {
           selectedNode = anchorNode;

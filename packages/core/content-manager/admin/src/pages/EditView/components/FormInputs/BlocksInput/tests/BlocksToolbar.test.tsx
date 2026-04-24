@@ -9,12 +9,16 @@ import { type Descendant, type Editor, type Location, createEditor, Transforms }
 import { Slate, withReact, ReactEditor } from 'slate-react';
 
 import { codeBlocks } from '../Blocks/Code';
+import { componentBlocks } from '../Blocks/Component';
+import { dynamicZoneBlocks } from '../Blocks/DynamicZone';
 import { headingBlocks } from '../Blocks/Heading';
 import { imageBlocks } from '../Blocks/Image';
 import { linkBlocks } from '../Blocks/Link';
 import { listBlocks } from '../Blocks/List';
+import { mediaBlocks } from '../Blocks/Media';
 import { paragraphBlocks } from '../Blocks/Paragraph';
 import { quoteBlocks } from '../Blocks/Quote';
+import { relationBlocks } from '../Blocks/Relation';
 import { type BlocksStore, BlocksEditorProvider } from '../BlocksEditor';
 import { BlocksToolbar } from '../BlocksToolbar';
 import { modifiers } from '../Modifiers';
@@ -76,6 +80,10 @@ const blocks: BlocksStore = {
   ...listBlocks,
   ...linkBlocks,
   ...imageBlocks,
+  ...mediaBlocks,
+  ...componentBlocks,
+  ...dynamicZoneBlocks,
+  ...relationBlocks,
   ...quoteBlocks,
   ...codeBlocks,
 };

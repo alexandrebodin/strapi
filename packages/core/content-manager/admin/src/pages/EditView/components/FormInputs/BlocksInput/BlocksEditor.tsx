@@ -13,12 +13,16 @@ import { styled, type CSSProperties } from 'styled-components';
 import { getTranslation } from '../../../../../utils/translations';
 
 import { codeBlocks } from './Blocks/Code';
+import { componentBlocks } from './Blocks/Component';
+import { dynamicZoneBlocks } from './Blocks/DynamicZone';
 import { headingBlocks } from './Blocks/Heading';
 import { imageBlocks } from './Blocks/Image';
 import { linkBlocks } from './Blocks/Link';
 import { listBlocks } from './Blocks/List';
+import { mediaBlocks } from './Blocks/Media';
 import { paragraphBlocks } from './Blocks/Paragraph';
 import { quoteBlocks } from './Blocks/Quote';
+import { relationBlocks } from './Blocks/Relation';
 import { BlocksContent, type BlocksContentProps } from './BlocksContent';
 import { BlocksToolbar } from './BlocksToolbar';
 import { EditorLayout } from './EditorLayout';
@@ -75,6 +79,10 @@ const selectorBlockKeys = [
   'list-ordered',
   'list-unordered',
   'image',
+  'media',
+  'component',
+  'dynamic-zone',
+  'relation',
   'quote',
   'code',
 ] as const;
@@ -203,6 +211,10 @@ const BlocksEditor = React.forwardRef<{ focus: () => void }, BlocksEditorProps>(
         ...listBlocks,
         ...linkBlocks,
         ...imageBlocks,
+        ...mediaBlocks,
+        ...componentBlocks,
+        ...dynamicZoneBlocks,
+        ...relationBlocks,
         ...quoteBlocks,
         ...codeBlocks,
       }),

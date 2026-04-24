@@ -24,6 +24,7 @@ import { decorateCode } from './Blocks/Code';
 import { type BlocksStore, useBlocksEditorContext } from './BlocksEditor';
 import { useConversionModal } from './BlocksToolbar';
 import { type ModifiersStore } from './Modifiers';
+import { SlashMenu } from './SlashMenu';
 import { getEntries } from './utils/types';
 
 const StyledEditable = styled(Editable)<{ $isExpandedMode: boolean }>`
@@ -632,6 +633,7 @@ const BlocksContent = ({ placeholder, ariaLabelId }: BlocksContentProps) => {
         onDrop={dragNoop}
         onDragStart={dragNoop}
       />
+      <SlashMenu onConversionResult={handleConversionResult} />
       {modalElement}
     </Box>
   );

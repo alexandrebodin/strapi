@@ -32,6 +32,7 @@ import { getTranslation } from '../../utils/translations';
 import { createYupSchema } from '../../utils/validation';
 
 import { Blocker } from './components/Blocker';
+import { BodyAwareLayout } from './components/BodyAwareLayout';
 import { FormLayout } from './components/FormLayout';
 import { Header } from './components/Header';
 import { Panels, PanelsProvider, usePanelsContext, ActionsPanelContent } from './components/Panels';
@@ -232,10 +233,10 @@ const EditViewPage = () => {
                     <tours.contentManager.Fields>
                       <Box />
                     </tours.contentManager.Fields>
-                    <FormLayout layout={layout} document={doc} hasBackground={!isMobile} />
+                    <BodyAwareLayout layout={layout} document={doc} hasBackground={!isMobile} />
                   </Tabs.Content>
                   <Tabs.Content value="published">
-                    <FormLayout layout={layout} document={doc} hasBackground={!isMobile} />
+                    <BodyAwareLayout layout={layout} document={doc} hasBackground={!isMobile} />
                   </Tabs.Content>
                 </Grid.Item>
                 {isDesktop && (
