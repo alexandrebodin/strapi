@@ -185,6 +185,12 @@ export default function createComponentBuilder() {
         .set('options', {
           ...(infos.options ?? {}),
           draftAndPublish: infos.draftAndPublish,
+          // `body` comes through the admin payload as a flat top-level key
+          // (stateToRequestData spreads `type.options`). Put it back under
+          // options where the domain-layer injector expects to find it.
+          ...((infos as unknown as { body?: Record<string, unknown> }).body
+            ? { body: (infos as unknown as { body: Record<string, unknown> }).body }
+            : {}),
         })
         .set('pluginOptions', infos.pluginOptions)
         .set('config', infos.config);
@@ -335,6 +341,10 @@ export default function createComponentBuilder() {
         .set('options', {
           ...(infos.options ?? {}),
           draftAndPublish: infos.draftAndPublish,
+          // See createContentType — same reconstruction on update.
+          ...((infos as { body?: Record<string, unknown> }).body
+            ? { body: (infos as { body: Record<string, unknown> }).body }
+            : {}),
         })
         .set('pluginOptions', infos.pluginOptions)
         .setAttributes(this.convertAttributes(newAttributes));

@@ -56,6 +56,12 @@ export interface DataManagerContextValue {
       kind: Struct.ContentTypeKind;
       draftAndPublish: boolean;
       pluginOptions: Record<string, any>;
+      body?: {
+        enabled?: boolean;
+        allowComponents?: boolean;
+        allowDynamicZones?: boolean;
+        allowRelations?: boolean;
+      };
     };
     uid: Internal.UID.Schema;
   }) => void;
@@ -106,6 +112,12 @@ export interface DataManagerContextValue {
       kind: Struct.ContentTypeKind;
       draftAndPublish: boolean;
       pluginOptions: Record<string, any>;
+      body?: {
+        enabled?: boolean;
+        allowComponents?: boolean;
+        allowDynamicZones?: boolean;
+        allowRelations?: boolean;
+      };
     };
     uid: Internal.UID.ContentType;
   }) => void;

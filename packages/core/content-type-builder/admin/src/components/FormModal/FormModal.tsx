@@ -28,6 +28,7 @@ import { getYupInnerErrors } from '../../utils/getYupInnerErrors';
 import { AllowedTypesSelect } from '../AllowedTypesSelect';
 import { IconByType } from '../AttributeIcon';
 import { AttributeOptions } from '../AttributeOptions/AttributeOptions';
+import { BodyToggle } from '../BodyToggle';
 import { BooleanDefaultValueSelect } from '../BooleanDefaultValueSelect';
 import { BooleanRadioGroup } from '../BooleanRadioGroup';
 import { CheckboxWithNumberField } from '../CheckboxWithNumberField';
@@ -212,6 +213,12 @@ export const FormModal = () => {
           actions.setDataToEdit({
             data: {
               draftAndPublish: true,
+              // Body defaults: injection + all embeds allowed, opted in unless
+              // the user explicitly disables it.
+              bodyEnabled: true,
+              bodyAllowComponents: true,
+              bodyAllowDynamicZones: true,
+              bodyAllowRelations: true,
             },
           })
         );
@@ -219,6 +226,7 @@ export const FormModal = () => {
 
       // Edit content type
       if (modalType === 'contentType' && actionType === 'edit') {
+        const bodyOptions = (type.options as { body?: Record<string, boolean> } | undefined)?.body;
         dispatch(
           actions.setDataToEdit({
             data: {
@@ -228,6 +236,10 @@ export const FormModal = () => {
               pluginOptions: type.pluginOptions,
               pluralName: 'pluralName' in type.info && type.info.pluralName,
               singularName: 'singularName' in type.info && type.info.singularName,
+              bodyEnabled: bodyOptions?.enabled ?? true,
+              bodyAllowComponents: bodyOptions?.allowComponents ?? true,
+              bodyAllowDynamicZones: bodyOptions?.allowDynamicZones ?? true,
+              bodyAllowRelations: bodyOptions?.allowRelations ?? true,
             },
           })
         );
@@ -528,6 +540,14 @@ export const FormModal = () => {
       const ctTargetUid = targetUid;
 
       if (isCreatingContentType) {
+        // Extract the body toggles from modifiedData and fold into options.body.
+        const bodyPayload = {
+          enabled: modifiedData.bodyEnabled !== false,
+          allowComponents: modifiedData.bodyAllowComponents !== false,
+          allowDynamicZones: modifiedData.bodyAllowDynamicZones !== false,
+          allowRelations: modifiedData.bodyAllowRelations !== false,
+        };
+
         // Create the content type schema
         if (isCreating) {
           createSchema({
@@ -538,6 +558,7 @@ export const FormModal = () => {
               pluginOptions: modifiedData.pluginOptions,
               singularName: modifiedData.singularName,
               pluralName: modifiedData.pluralName,
+              body: bodyPayload,
             },
             uid,
           });
@@ -560,6 +581,7 @@ export const FormModal = () => {
                 kind: modifiedData.kind,
                 draftAndPublish: modifiedData.draftAndPublish,
                 pluginOptions: modifiedData.pluginOptions,
+                body: bodyPayload,
               },
             });
           } else {
@@ -1014,6 +1036,7 @@ export const FormModal = () => {
       'select-number': SelectNumber,
       'select-date': SelectDateType,
       'toggle-draft-publish': DraftAndPublishToggle,
+      'body-toggle': BodyToggle,
       'text-plural': PluralName,
       'text-singular': SingularName,
       'textarea-enum': TextareaEnum,

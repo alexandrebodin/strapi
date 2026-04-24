@@ -76,6 +76,23 @@ export const isReservedModelName = (name: string) => {
   return false;
 };
 
+/**
+ * Flag-gated reservations: attribute names that are only forbidden when a
+ * specific `future.*` flag is on. Keeps projects that don't use the feature
+ * free to name their own fields however they like.
+ */
+const flagGatedReservedAttributes: Array<{ name: string; flag: string }> = [
+  { name: 'body', flag: 'body' },
+];
+
+const isFlagGatedReserved = (snakeCaseName: string): boolean => {
+  const features = (globalThis as any).strapi?.features?.future;
+  if (!features?.isEnabled) return false;
+  return flagGatedReservedAttributes.some(
+    (entry) => snakeCase(entry.name) === snakeCaseName && features.isEnabled(entry.flag)
+  );
+};
+
 // compare snake case to check the actual column names that will be used in the database
 export const isReservedAttributeName = (name: string) => {
   const snakeCaseName = snakeCase(name);
@@ -89,6 +106,10 @@ export const isReservedAttributeName = (name: string) => {
       .map((key) => key.slice(0, -1))
       .some((prefix) => snakeCaseName.startsWith(prefix))
   ) {
+    return true;
+  }
+
+  if (isFlagGatedReserved(snakeCaseName)) {
     return true;
   }
 

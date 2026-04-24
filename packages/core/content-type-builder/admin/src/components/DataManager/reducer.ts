@@ -101,6 +101,13 @@ type CreateComponentSchemaPayload = {
   componentCategory: string;
 };
 
+type BodyOptions = {
+  enabled?: boolean;
+  allowComponents?: boolean;
+  allowDynamicZones?: boolean;
+  allowRelations?: boolean;
+};
+
 type CreateSchemaPayload = {
   uid: string;
   data: {
@@ -110,6 +117,7 @@ type CreateSchemaPayload = {
     kind: Struct.ContentTypeKind;
     draftAndPublish: boolean;
     pluginOptions: Record<string, any>;
+    body?: BodyOptions;
   };
 };
 
@@ -159,6 +167,7 @@ type UpdateSchemaPayload = {
     kind: Struct.ContentTypeKind;
     draftAndPublish: boolean;
     pluginOptions: Record<string, any>;
+    body?: BodyOptions;
   };
   uid: string;
 };
@@ -310,8 +319,15 @@ const slice = createUndoRedoSlice(
       createSchema: (state, action: PayloadAction<CreateSchemaPayload>) => {
         const { uid, data } = action.payload;
 
-        const { displayName, singularName, pluralName, kind, draftAndPublish, pluginOptions } =
-          data;
+        const {
+          displayName,
+          singularName,
+          pluralName,
+          kind,
+          draftAndPublish,
+          pluginOptions,
+          body,
+        } = data;
 
         const newSchema: ContentType = {
           uid: uid as Internal.UID.ContentType,
@@ -325,7 +341,8 @@ const slice = createUndoRedoSlice(
           globalId: displayName,
           options: {
             draftAndPublish,
-          },
+            ...(body ? { body } : {}),
+          } as ContentType['options'],
           info: {
             displayName,
             singularName,
@@ -629,7 +646,7 @@ const slice = createUndoRedoSlice(
       updateSchema: (state, action: PayloadAction<UpdateSchemaPayload>) => {
         const { data, uid } = action.payload;
 
-        const { displayName, kind, draftAndPublish, pluginOptions } = data;
+        const { displayName, kind, draftAndPublish, pluginOptions, body } = data;
 
         const type = state.contentTypes[uid];
         if (!type) {
@@ -643,6 +660,7 @@ const slice = createUndoRedoSlice(
           kind,
           options: {
             draftAndPublish,
+            ...(body ? { body } : {}),
           },
           pluginOptions,
         });

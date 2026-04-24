@@ -32,6 +32,55 @@ export const contentTypeForm = {
               },
             ],
           },
+          {
+            sectionTitle: {
+              id: getTrad('contentType.body.section.title'),
+              defaultMessage: 'Body (experimental)',
+            },
+            items: [
+              {
+                intlLabel: {
+                  id: getTrad('contentType.body.enabled.label'),
+                  defaultMessage: 'Enable body field',
+                },
+                description: {
+                  id: getTrad('contentType.body.enabled.description'),
+                  defaultMessage:
+                    'Injects a pre-existing "body" blocks field on this content type. Requires the `future.body` feature flag.',
+                },
+                name: 'bodyEnabled',
+                type: 'body-toggle',
+                validations: {},
+              },
+              {
+                intlLabel: {
+                  id: getTrad('contentType.body.allowComponents.label'),
+                  defaultMessage: 'Allow components in body',
+                },
+                name: 'bodyAllowComponents',
+                type: 'body-toggle',
+                validations: {},
+              },
+              {
+                intlLabel: {
+                  id: getTrad('contentType.body.allowDynamicZones.label'),
+                  defaultMessage: 'Allow dynamic zones in body',
+                },
+                name: 'bodyAllowDynamicZones',
+                type: 'body-toggle',
+                validations: {},
+              },
+              {
+                intlLabel: {
+                  id: getTrad('contentType.body.allowRelations.label'),
+                  defaultMessage: 'Allow relations in body',
+                },
+                name: 'bodyAllowRelations',
+                type: 'body-toggle',
+                validations: {},
+              },
+            ],
+          },
         ],
       };
     },

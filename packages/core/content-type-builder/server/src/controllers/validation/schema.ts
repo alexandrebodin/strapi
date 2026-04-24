@@ -670,6 +670,15 @@ const deleteComponentSchema = z.object({
   uid: componentUIDSchema,
 });
 
+const bodyConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    allowComponents: z.boolean().optional(),
+    allowDynamicZones: z.boolean().optional(),
+    allowRelations: z.boolean().optional(),
+  })
+  .optional();
+
 const baseContentTypeSchema = z.object({
   uid: contentTypeUIDSchema,
   displayName: z.string().min(1),
@@ -678,6 +687,10 @@ const baseContentTypeSchema = z.object({
   options: z.record(z.unknown()).optional().default({}),
   pluginOptions: z.record(z.unknown()).optional().default({}),
   kind: z.enum([typeKinds.SINGLE_TYPE, typeKinds.COLLECTION_TYPE]).optional(),
+  // Body sub-schema configuration — surfaced flat at the request root by the
+  // admin (stateToRequestData spreads `options`). Accepted here and rebuilt
+  // back into `options.body` by the schema-builder.
+  body: bodyConfigSchema,
 });
 
 const baseCreateContentTypeSchema = baseContentTypeSchema.extend({
