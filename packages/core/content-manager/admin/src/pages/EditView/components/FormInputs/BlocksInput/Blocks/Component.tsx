@@ -21,7 +21,7 @@ import { useGetInitialDataQuery } from '../../../../../../services/init';
 import { useBlocksEditorContext, type BlocksStore } from '../BlocksEditor';
 import { type Block } from '../utils/types';
 
-import { ComponentDataForm, type SchemaAttribute } from './ComponentDataForm';
+import { ComponentDataForm } from './ComponentDataForm';
 
 /* -------------------------------------------------------------------------------------------------
  * Renderer with edit affordance
@@ -54,26 +54,10 @@ const EditDialog = ({ element, onClose }: { element: Block<'component'>; onClose
   const [draft, setDraft] = React.useState<Record<string, unknown>>(element.data ?? {});
 
   const component = data?.components?.find((c) => c.uid === element.componentUid);
-  const attributes = (component?.attributes ?? {}) as Record<string, SchemaAttribute>;
 
   const save = () => {
-    // Normalise any JSON fields that were kept as raw strings during typing.
-    const normalised: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(draft)) {
-      const attribute = attributes[key];
-      if (attribute?.type === 'json' && typeof value === 'string') {
-        try {
-          normalised[key] = JSON.parse(value);
-          continue;
-        } catch {
-          // Leave as string; server-side validation will surface the error.
-        }
-      }
-      normalised[key] = value;
-    }
-
     const path = ReactEditor.findPath(editor, element);
-    Transforms.setNodes(editor, { data: normalised } as any, { at: path });
+    Transforms.setNodes(editor, { data: draft } as any, { at: path });
     onClose();
   };
 
@@ -93,7 +77,11 @@ const EditDialog = ({ element, onClose }: { element: Block<'component'>; onClose
         </Modal.Header>
         <Modal.Body>
           {component ? (
-            <ComponentDataForm attributes={attributes} value={draft} onChange={setDraft} />
+            <ComponentDataForm
+              componentUid={element.componentUid}
+              value={draft}
+              onChange={setDraft}
+            />
           ) : (
             <Typography variant="pi" textColor="danger600">
               Unknown component: {element.componentUid}
@@ -191,7 +179,6 @@ const ComponentDialog = () => {
     () => components.find((c) => c.uid === selectedUid),
     [components, selectedUid]
   );
-  const attributes = (selectedComponent?.attributes ?? {}) as Record<string, SchemaAttribute>;
 
   const handleSelect = (uid: string) => {
     setSelectedUid(uid);
@@ -266,13 +253,13 @@ const ComponentDialog = () => {
               </SingleSelect>
             </Field.Root>
 
-            {selectedComponent && (
+            {selectedComponent && selectedUid && (
               <Box
                 paddingTop={4}
                 borderColor="neutral150"
                 style={{ borderTopWidth: 1, borderTopStyle: 'solid' }}
               >
-                <ComponentDataForm attributes={attributes} value={draft} onChange={setDraft} />
+                <ComponentDataForm componentUid={selectedUid} value={draft} onChange={setDraft} />
               </Box>
             )}
           </Flex>

@@ -21,7 +21,7 @@ import { useGetInitialDataQuery } from '../../../../../../services/init';
 import { useBlocksEditorContext, type BlocksStore } from '../BlocksEditor';
 import { type Block } from '../utils/types';
 
-import { ComponentDataForm, type SchemaAttribute } from './ComponentDataForm';
+import { ComponentDataForm } from './ComponentDataForm';
 
 /* -------------------------------------------------------------------------------------------------
  * Dynamic-zone renderer with add / edit / remove per item
@@ -87,7 +87,6 @@ const PickComponentDialog = ({
   }, [data]);
 
   const selectedComponent = (data?.components ?? []).find((c) => c.uid === selectedUid);
-  const attributes = (selectedComponent?.attributes ?? {}) as Record<string, SchemaAttribute>;
 
   const handleSelect = (uid: string) => {
     setSelectedUid(uid);
@@ -128,13 +127,13 @@ const PickComponentDialog = ({
               </SingleSelect>
             </Field.Root>
 
-            {selectedComponent && (
+            {selectedComponent && selectedUid && (
               <Box
                 paddingTop={4}
                 borderColor="neutral150"
                 style={{ borderTopWidth: 1, borderTopStyle: 'solid' }}
               >
-                <ComponentDataForm attributes={attributes} value={draft} onChange={setDraft} />
+                <ComponentDataForm componentUid={selectedUid} value={draft} onChange={setDraft} />
               </Box>
             )}
           </Flex>
@@ -180,7 +179,6 @@ const EditItemDialog = ({
   const [draft, setDraft] = React.useState<Record<string, unknown>>(initial ?? {});
 
   const component = data?.components?.find((c) => c.uid === componentUid);
-  const attributes = (component?.attributes ?? {}) as Record<string, SchemaAttribute>;
 
   return (
     <Modal.Root open onOpenChange={(next: boolean) => !next && onClose()}>
@@ -195,7 +193,7 @@ const EditItemDialog = ({
         </Modal.Header>
         <Modal.Body>
           {component ? (
-            <ComponentDataForm attributes={attributes} value={draft} onChange={setDraft} />
+            <ComponentDataForm componentUid={componentUid} value={draft} onChange={setDraft} />
           ) : (
             <Typography variant="pi" textColor="danger600">
               Unknown component: {componentUid}
